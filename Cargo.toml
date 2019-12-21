@@ -1,0 +1,16 @@
+[package]
+name = "votecube-gate"
+version = "0.1.0"
+authors = ["Artem Shamsutdinov <artem.shamsutdinov@votecube.com>"]
+edition = "2018"
+
+[[bin]]
+name = "votecube-gate"
+path = "src/main.rs"
+
+[dependencies]
+env_logger = "0.5"
+rustls = "0.16"
+actix-web = { version = "2.0.0-rc", features=["rustls"] }
+actix-files = "0.2.0"
+actix-rt = "1.0.0"
