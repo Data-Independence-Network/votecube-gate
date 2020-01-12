@@ -1,20 +1,45 @@
 use std::fs::File;
 use std::io::BufReader;
 
-use actix_files::Files;
-use actix_web::{client, middleware, web, App, Error, HttpRequest, HttpResponse, HttpServer};
-use rustls::internal::pemfile::{certs, rsa_private_keys};
+use actix_web::{App, client, Error, HttpRequest, HttpResponse, HttpServer, web};
 use rustls::{NoClientAuth, ServerConfig};
+use rustls::internal::pemfile::{certs, rsa_private_keys};
 
 /// simple handle
-async fn index(
+async fn forward(
     req: HttpRequest,
     body: web::Bytes,
-    client: web::Data<client::Client>
+    client: web::Data<client::Client>,
 ) -> Result<HttpResponse, Error> {
+//    let mut url = req.uri().path().clone();
+    let mut query_string = String::new();
+    match req.uri().query() {
+        Some(query) => {
+            query_string = format!("?{}", query);
+        }
+        None => {
+            // Nothing to do
+        }
+    }
+    let path = req.uri().path();
+    let url;
+    if req.uri().path().starts_with("/ui") {
+//        url = format!("http://localhost:3000{}{}", &path[3..], query_string);
+        url = format!("http://localhost:3000{}{}", path, query_string);
+    } else if req.uri().path().starts_with("/get") {
+        url = format!("http://localhost:8444{}{}", path, query_string);
+    } else if req.uri().path().starts_with("/put") {
+        url = format!("http://localhost:8445{}{}", path, query_string);
+    } else {
+        return Ok(HttpResponse::BadRequest()
+            .header("Cache-Control", "public, max-age=86400")
+            .finish());
+    }
+
+    println!("Forward URL: {}", url);
 
     let forwarded_req = client
-        .request_from("http://localhost:8445", req.head())
+        .request_from(url, req.head())
         .no_decompress();
 
     let res = forwarded_req.send_body(body).await.map_err(Error::from)?;
@@ -50,16 +75,9 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .data(client::Client::new())
             // enable logger
-            .wrap(middleware::Logger::default())
-            // register simple handler, handle all methods
-            .service(web::resource("/index.html").to(index))
-            // with path parameters
-            .service(web::resource("/").route(web::get().to(|| {
-                HttpResponse::Found()
-                    .header("LOCATION", "/index.html")
-                    .finish()
-            })))
-            .service(Files::new("/static", "static"))
+//            .wrap(middleware::Logger::default())
+            // handle paths
+            .default_service(web::route().to(forward))
     })
         .bind_rustls("127.0.0.1:8443", config)?
         .start()
