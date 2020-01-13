@@ -36,13 +36,15 @@ async fn forward(
             .finish());
     }
 
-    println!("Forward URL: {}", url);
+//    println!("Forward URL: {}", url);
 
     let forwarded_req = client
         .request_from(url, req.head())
         .no_decompress();
 
     let res = forwarded_req.send_body(body).await.map_err(Error::from)?;
+
+//    println!("Response Status: {}", res.status());
 
     let mut client_resp = HttpResponse::build(res.status());
     // Remove `Connection` as per
