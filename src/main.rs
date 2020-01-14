@@ -23,13 +23,14 @@ async fn forward(
     }
     let path = req.uri().path();
     let url;
-    if req.uri().path().starts_with("/ui") {
-//        url = format!("http://localhost:3000{}{}", &path[3..], query_string);
-        url = format!("http://localhost:3000{}{}", path, query_string);
-    } else if req.uri().path().starts_with("/get") {
+    if req.uri().path().starts_with("/get")
+        || req.uri().path().starts_with("/list") {
         url = format!("http://localhost:8444{}{}", path, query_string);
     } else if req.uri().path().starts_with("/put") {
         url = format!("http://localhost:8445{}{}", path, query_string);
+    } else if req.uri().path().starts_with("/ui") {
+//        url = format!("http://localhost:3000{}{}", &path[3..], query_string);
+        url = format!("http://localhost:3000{}{}", path, query_string);
     } else {
         return Ok(HttpResponse::BadRequest()
             .header("Cache-Control", "public, max-age=86400")
